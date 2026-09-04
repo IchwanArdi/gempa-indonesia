@@ -1,0 +1,21 @@
+# Docker Compose file for trackly-gempa-id project
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: trackly-gempa-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: trackly
+      POSTGRES_PASSWORD: trackly_dev
+      POSTGRES_DB: trackly
+
+    ports:
+      - '5432:5432'
+
+    # Persist data in a named volume
+    volumes:
+      - trackly-gempa-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  trackly-gempa-postgres-data:

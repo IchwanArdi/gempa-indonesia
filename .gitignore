@@ -1,0 +1,51 @@
+# Node
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.pid.lock
+
+# Environment
+.env
+.env.*
+
+# Next.js
+/.next/
+/out/
+
+# Build outputs
+/dist/
+/build/
+
+# Coverage
+/coverage/
+/.nyc_output/
+
+# Editor directories
+.DS_Store
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+
+# pnpm
+.pnpm-debug.log
+
+# Misc
+.cache/
+.parcel-cache/
+.turbo/
+.vercel/
+
+# Ignore package manager artifacts (lockfiles should be committed)
+# package-lock.json
+# pnpm-lock.yaml

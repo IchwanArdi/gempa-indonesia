@@ -1,0 +1,202 @@
+trackly/
+│
+├── apps/
+│   │
+│   ├── web/                          # Frontend Next.js
+│   │   ├── app/
+│   │   │   ├── (public)/
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── earthquakes/
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   └── [id]/
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── map/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── about/
+│   │   │   │       └── page.tsx
+│   │   │   │
+│   │   │   ├── api/                 # Kalau ada BFF/route internal Next
+│   │   │   │
+│   │   │   ├── layout.tsx
+│   │   │   ├── globals.css
+│   │   │   └── error.tsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── ui/
+│   │   │   ├── map/
+│   │   │   ├── earthquake/
+│   │   │   ├── news/
+│   │   │   └── dashboard/
+│   │   │
+│   │   ├── hooks/
+│   │   │
+│   │   ├── lib/
+│   │   │   ├── api.ts
+│   │   │   ├── utils.ts
+│   │   │   └── constants.ts
+│   │   │
+│   │   ├── public/
+│   │   │   ├── icons/
+│   │   │   └── images/
+│   │   │
+│   │   ├── tests/
+│   │   │
+│   │   ├── next.config.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   │
+│   └── api/                          # Backend NestJS
+│       ├── src/
+│       │   │
+│       │   ├── main.ts
+│       │   │
+│       │   ├── app.module.ts
+│       │   │
+│       │   ├── config/
+│       │   │   ├── configuration.ts
+│       │   │   └── validation.ts
+│       │   │
+│       │   ├── database/
+│       │   │   ├── database.module.ts
+│       │   │   └── prisma.service.ts
+│       │   │
+│       │   ├── earthquakes/
+│       │   │   ├── earthquakes.module.ts
+│       │   │   ├── earthquakes.controller.ts
+│       │   │   ├── earthquakes.service.ts
+│       │   │   ├── earthquakes.repository.ts
+│       │   │   │
+│       │   │   ├── dto/
+│       │   │   │   ├── earthquake-query.dto.ts
+│       │   │   │   └── nearby-earthquake.dto.ts
+│       │   │   │
+│       │   │   └── mappers/
+│       │   │       └── earthquake.mapper.ts
+│       │   │
+│       │   ├── providers/
+│       │   │   │
+│       │   │   ├── bmkg/
+│       │   │   │   ├── bmkg.module.ts
+│       │   │   │   ├── bmkg.client.ts
+│       │   │   │   ├── bmkg.service.ts
+│       │   │   │   └── bmkg.types.ts
+│       │   │   │
+│       │   │   └── usgs/
+│       │   │       ├── usgs.module.ts
+│       │   │       ├── usgs.client.ts
+│       │   │       ├── usgs.service.ts
+│       │   │       └── usgs.types.ts
+│       │   │
+│       │   ├── ingestion/
+│       │   │   ├── ingestion.module.ts
+│       │   │   ├── ingestion.service.ts
+│       │   │   └── jobs/
+│       │   │       └── earthquake-ingestion.job.ts
+│       │   │
+│       │   ├── news/
+│       │   │   ├── news.module.ts
+│       │   │   ├── news.controller.ts
+│       │   │   └── news.service.ts
+│       │   │
+│       │   ├── social/
+│       │   │   ├── social.module.ts
+│       │   │   ├── social.controller.ts
+│       │   │   └── social.service.ts
+│       │   │
+│       │   ├── ai/
+│       │   │   ├── ai.module.ts
+│       │   │   ├── ai.controller.ts
+│       │   │   ├── ai.service.ts
+│       │   │   └── prompts/
+│       │   │       └── earthquake-summary.prompt.ts
+│       │   │
+│       │   ├── health/
+│       │   │   ├── health.module.ts
+│       │   │   └── health.controller.ts
+│       │   │
+│       │   └── common/
+│       │       ├── decorators/
+│       │       ├── filters/
+│       │       ├── guards/
+│       │       ├── interceptors/
+│       │       └── pipes/
+│       │
+│       ├── prisma/
+│       │   ├── schema.prisma
+│       │   └── migrations/
+│       │
+│       ├── test/
+│       │
+│       ├── nest-cli.json
+│       ├── package.json
+│       └── tsconfig.json
+│
+│
+├── packages/
+│   │
+│   ├── types/                        # Shared TypeScript types
+│   │   ├── src/
+│   │   │   ├── earthquake.ts
+│   │   │   ├── news.ts
+│   │   │   ├── social.ts
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   ├── eslint-config/                # Shared ESLint
+│   │   ├── base.js
+│   │   └── package.json
+│   │
+│   └── tsconfig/                     # Shared TypeScript config
+│       ├── base.json
+│       ├── nextjs.json
+│       ├── nestjs.json
+│       └── package.json
+│
+│
+├── infrastructure/
+│   ├── docker/
+│   │   ├── postgres/
+│   │   └── redis/
+│   │
+│   └── README.md
+│
+│
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   └── deploy.yml
+│   │
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   └── feature_request.md
+│   │
+│   └── pull_request_template.md
+│
+│
+├── docs/
+│   ├── architecture/
+│   │   ├── overview.md
+│   │   └── data-flow.md
+│   │
+│   ├── api/
+│   │   └── README.md
+│   │
+│   └── database/
+│       └── erd.md
+│
+│
+├── scripts/
+│   ├── seed.ts
+│   └── setup.ts
+│
+│
+├── .env.example
+├── .gitignore
+├── .editorconfig
+├── docker-compose.yml
+├── package.json
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+├── README.md
+└── LICENSE

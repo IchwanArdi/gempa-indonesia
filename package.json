@@ -1,0 +1,25 @@
+{
+  "name": "trackly-gempa-id",
+  "version": "1.0.0",
+  "description": "Melacak gempa bumi di Indonesia",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "keywords": [],
+  "author": "Ichwan Ardianto",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.25.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@11.25.0",
+  "type": "module"
+}
