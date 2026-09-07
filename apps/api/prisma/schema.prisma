@@ -1,16 +1,39 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [postgis]
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model spatial_ref_sys {
-  srid      Int     @id
-  auth_name String? @db.VarChar(256)
-  auth_srid Int?
-  srtext    String? @db.VarChar(2048)
-  proj4text String? @db.VarChar(2048)
+model Earthquake {
+  id String @id @default(cuid())
+
+  externalId String
+  source     EarthquakeSource
+
+  magnitude Float
+  depthKm   Float
+
+  latitude  Float
+  longitude Float
+
+  occurredAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  geom Unsupported("geography(Point,4326)")?
+
+  @@unique([source, externalId])
+  @@index([occurredAt])
+  @@index([magnitude])
+  @@index([source])
+}
+
+enum EarthquakeSource {
+  BMKG
+  USGS
 }
