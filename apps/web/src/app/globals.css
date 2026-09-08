@@ -1,26 +1,42 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
+/* Design tokens sebagai CSS variables — memudahkan kustomisasi tanpa
+   tergantung utility classes semata. Warna netral + satu warna brand,
+   plus palette severity fungsional. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #0b0d10;
+  --surface: #0b0d10;
+  --surface-raised: #0f1417;
+  --border: #1f2933;
+  --brand: #0f172a;
+  --content-primary: #e6eef8;
+  --content-secondary: #a8b3bf;
+  --content-tertiary: #7f8b94;
+
+  --severity-minor: #22c55e;
+  --severity-moderate: #f59e0b;
+  --severity-strong: #f97316;
+  --severity-severe: #ef4444;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  /* same tokens; app uses dark look by default */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html, body, #__next {
+    height: 100%;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--canvas);
+    color: var(--content-primary);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(15,23,42,0.6);
+    border-radius: 6px;
+  }
 }
