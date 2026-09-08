@@ -4,10 +4,8 @@ import { useEarthquakes } from '@/lib/use-earthquakes';
 import { getSeverity, severityLabel, severityColor, formatRelativeTime } from '@/lib/severity';
 import { haversineDistanceKm } from '@/lib/distance';
 
-import { useCallback } from 'react';
-
 export function EventList() {
-  const { data, isLoading, error, center, setCenter } = useEarthquakes();
+  const { data, rawData, isLoading, error, center, setCenter, setRadiusKm } = useEarthquakes();
 
   if (isLoading) {
     return <div className="p-4 text-sm text-content-secondary">Memuat data...</div>;
@@ -18,6 +16,31 @@ export function EventList() {
   }
 
   if (data.length === 0) {
+    if (rawData && rawData.length > 0) {
+      return (
+        <div className="p-4 text-sm text-content-secondary">
+          <p>
+            Ada {rawData.length} gempa di sumber, tapi tidak ada yang cocok dengan radius saat ini ({Math.round(Math.max(0, Number((rawData.length && data.length) || 0)))}).
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={() => setRadiusKm(20000)} className="rounded bg-brand px-3 py-1 text-xs font-medium text-content-primary">
+              Tampilkan semua gempa
+            </button>
+            <button
+              onClick={() => {
+                setCenter({ latitude: -2, longitude: 118 });
+                setRadiusKm(500);
+              }}
+              className="rounded border border-border px-3 py-1 text-xs text-content-primary"
+            >
+              Reset center & radius
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-content-tertiary">Jika masih kosong, pastikan backend berjalan dan `NEXT_PUBLIC_API_URL` mengarah ke server API.</p>
+        </div>
+      );
+    }
+
     return <div className="p-4 text-sm text-content-secondary">Belum ada data gempa untuk ditampilkan.</div>;
   }
 
@@ -27,9 +50,9 @@ export function EventList() {
         const severity = getSeverity(eq.magnitude);
         const distanceKm = haversineDistanceKm(center.latitude, center.longitude, eq.latitude, eq.longitude);
 
-        const onClick = useCallback(() => {
+        const onClick = () => {
           setCenter({ latitude: eq.latitude, longitude: eq.longitude });
-        }, [eq.latitude, eq.longitude, setCenter]);
+        };
 
         return (
           <li key={eq.id} onClick={onClick} className="flex cursor-pointer items-start gap-3 border-b border-border px-4 py-3 hover:bg-surface-raised">

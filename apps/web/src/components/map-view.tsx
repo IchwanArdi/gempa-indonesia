@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import Map, { Marker, type MapRef } from 'react-map-gl/maplibre';
+import { useRef, useState } from 'react';
+import Map, { Marker, Popup, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
 import { useEarthquakes } from '@/lib/use-earthquakes';
-import { getSeverity, severityColor } from '@/lib/severity';
+import { getSeverity, severityColor, formatRelativeTime } from '@/lib/severity';
 
-// Style peta monokrom/gelap dari sumber gratis (CARTO), supaya
-// selaras dengan tema dark aplikasi — bukan default MapLibre demo
-// style yang ramai warna.
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// Dua style: dark minimal untuk fokus data, dan light minimal bila
+// user butuh kontras lebih jelas. Kita berikan toggle agar mudah
+// beralih menurut kebutuhan.
+const MAP_STYLES = {
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+} as const;
 
 // Pusat awal peta: kira-kira tengah Indonesia
 const INITIAL_VIEW = {
@@ -20,12 +23,24 @@ const INITIAL_VIEW = {
 export function MapView() {
   const { data, center, radiusKm } = useEarthquakes();
   const mapRef = useRef<MapRef>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [styleKey, setStyleKey] = useState<'dark' | 'light'>('dark');
 
   return (
     <Map
       ref={mapRef}
-      initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)), bearing: 0, pitch: 0 }}
-      mapStyle={MAP_STYLE}
+      initialViewState={
+        {
+          longitude: center.longitude,
+          latitude: center.latitude,
+          zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)),
+          bearing: 0,
+          pitch: 0,
+          padding: 0,
+        } as any
+      }
+      mapStyle={MAP_STYLES[styleKey]}
       style={{ width: '100%', height: '100%' }}
     >
       {data.map((eq) => {
@@ -40,19 +55,90 @@ export function MapView() {
               berlebihan (statis, cuma opacity).
             */}
             <div
-              className="rounded-full"
+              onClick={() => setSelected(eq.id)}
+              onMouseEnter={() => setHovered(eq.id)}
+              onMouseLeave={() => setHovered((h) => (h === eq.id ? null : h))}
+              className="rounded-full flex items-center justify-center"
               style={{
-                width: `${8 + eq.magnitude * 2}px`,
-                height: `${8 + eq.magnitude * 2}px`,
+                width: `${12 + eq.magnitude * 3}px`,
+                height: `${12 + eq.magnitude * 3}px`,
                 backgroundColor: severityColor[severity],
-                border: '1.5px solid rgba(11, 13, 16, 0.8)',
-                boxShadow: `0 0 0 4px ${severityColor[severity]}22`,
+                border: '2px solid rgba(0,0,0,0.75)',
+                boxShadow: `0 0 0 8px ${severityColor[severity]}33`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               title={`M${eq.magnitude.toFixed(1)} — ${eq.depthKm}km`}
-            />
+            >
+              <div style={{ color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{eq.magnitude.toFixed(1)}</div>
+            </div>
           </Marker>
         );
       })}
+
+      {selected &&
+        (() => {
+          const eq = data.find((e) => e.id === selected) || null;
+          if (!eq) return null;
+          return (
+            <Popup longitude={eq.longitude} latitude={eq.latitude} onClose={() => setSelected(null)} closeButton={true} anchor="top">
+              <div className="w-48">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="font-mono text-sm font-medium">M{eq.magnitude.toFixed(1)}</div>
+                  <div className="text-[11px] text-content-tertiary">{formatRelativeTime(new Date(eq.occurredAt))}</div>
+                </div>
+                <p className="mt-1 text-xs text-content-secondary">
+                  {getSeverity(eq.magnitude) !== 'minor' ? getSeverity(eq.magnitude) : ''} · Kedalaman {eq.depthKm} km
+                </p>
+                <p className="mt-1 text-xs text-content-tertiary font-mono">
+                  {eq.latitude.toFixed(2)}, {eq.longitude.toFixed(2)}
+                </p>
+              </div>
+            </Popup>
+          );
+        })()}
+
+      {hovered &&
+        (() => {
+          const he = data.find((e) => e.id === hovered) || null;
+          if (!he) return null;
+          return (
+            <Popup longitude={he.longitude} latitude={he.latitude} closeButton={false} anchor="bottom" offset={[0, -10]}>
+              <div className="px-2 py-1 rounded bg-surface-raised text-xs">
+                <strong className="font-mono">M{he.magnitude.toFixed(1)}</strong> · {he.depthKm} km
+              </div>
+            </Popup>
+          );
+        })()}
+
+      <div style={{ position: 'absolute', right: 10, top: 10, zIndex: 2 }}>
+        <NavigationControl showCompass={false} />
+      </div>
+
+      {/* style toggle + legend */}
+      <div style={{ position: 'absolute', left: 12, top: 12, zIndex: 2 }}>
+        <div className="flex gap-2">
+          <button onClick={() => setStyleKey((s) => (s === 'dark' ? 'light' : 'dark'))} className="rounded bg-surface-raised px-3 py-1 text-xs border border-border">
+            Toggle map ({styleKey})
+          </button>
+          <div className="rounded bg-surface px-3 py-1 text-xs border border-border">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-minor)' }} />
+              <span className="text-[11px]">Kecil</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-moderate)' }} />
+              <span className="text-[11px]">Sedang</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-strong)' }} />
+              <span className="text-[11px]">Kuat</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </Map>
   );
 }

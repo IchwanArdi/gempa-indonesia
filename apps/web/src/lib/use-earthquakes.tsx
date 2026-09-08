@@ -79,11 +79,7 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
     });
   }, [rawData, center, radiusKm]);
 
-  return (
-    <EarthquakeContext.Provider value={{ rawData, data, isLoading, error, center, radiusKm, setCenter, setRadiusKm }}>
-      {children}
-    </EarthquakeContext.Provider>
-  );
+  return <EarthquakeContext.Provider value={{ rawData, data, isLoading, error, center, radiusKm, setCenter, setRadiusKm }}>{children}</EarthquakeContext.Provider>;
 }
 
 export function useEarthquakes() {
