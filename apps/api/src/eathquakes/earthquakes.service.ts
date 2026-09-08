@@ -82,4 +82,53 @@ export class EarthquakesService {
       fetched: earthquakes.length,
     };
   }
+
+  // the findNearby method retrieves earthquake records from the database that are within a specified radius (in kilometers) of a given latitude and longitude. It uses raw SQL queries to perform spatial calculations using PostGIS functions.
+  async findNearby(lat: number, lng: number, radiusKm: number) {
+    const radiusMeters = radiusKm * 1000;
+
+    const data = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        externalId: string;
+        source: string;
+        magnitude: number;
+        depthKm: number;
+        latitude: number;
+        longitude: number;
+        occurredAt: Date;
+        distanceKm: number;
+      }>
+    >`
+      SELECT
+        id,
+        "externalId",
+        source,
+        magnitude,
+        "depthKm",
+        latitude,
+        longitude,
+        "occurredAt",
+        ST_Distance(
+          geom,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+        ) / 1000 AS "distanceKm"
+      FROM "Earthquake"
+      WHERE ST_DWithin(
+        geom,
+        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+        ${radiusMeters}
+      )
+      ORDER BY "distanceKm" ASC
+    `;
+
+    return {
+      data,
+      meta: {
+        total: data.length,
+        center: { lat, lng },
+        radiusKm,
+      },
+    };
+  }
 }
