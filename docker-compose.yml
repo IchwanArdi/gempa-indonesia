@@ -1,4 +1,5 @@
-# Docker Compose file for trackly-gempa-id project
+version: '3.8'
+
 services:
   postgres:
     image: postgis/postgis:17-3.5
@@ -17,5 +18,34 @@ services:
     volumes:
       - trackly-gempa-postgres-data:/var/lib/postgresql/data
 
+    # Healthcheck PostgreSQL
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U trackly -d trackly']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    # Connect the service to the app-network
+    networks:
+      - app-network
+
+  # Adminer service for database management
+  adminer:
+    image: adminer:latest
+    container_name: trackly-gempa-adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+# Define a named volume for PostgreSQL data persistence
 volumes:
   trackly-gempa-postgres-data:
