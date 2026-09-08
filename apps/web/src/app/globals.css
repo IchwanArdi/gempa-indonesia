@@ -25,7 +25,9 @@
 }
 
 @layer base {
-  html, body, #__next {
+  html,
+  body,
+  #__next {
     height: 100%;
   }
 
@@ -36,7 +38,7 @@
 
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(15,23,42,0.6);
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.6);
     border-radius: 6px;
   }
 }

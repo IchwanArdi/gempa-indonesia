@@ -24,15 +24,9 @@ export function MapView() {
   return (
     <Map
       ref={mapRef}
-      initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)) }}
-      viewState={{ longitude: center.longitude, latitude: center.latitude, zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)) }}
+      initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)), bearing: 0, pitch: 0 }}
       mapStyle={MAP_STYLE}
       style={{ width: '100%', height: '100%' }}
-      onMove={(evt) => {
-        // keep center in sync if user pans map
-        const { longitude, latitude } = evt.viewState;
-        // don't call setCenter here to avoid tight loops (optional)
-      }}
     >
       {data.map((eq) => {
         const severity = getSeverity(eq.magnitude);

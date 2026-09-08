@@ -91,4 +91,3 @@ export function useEarthquakes() {
   if (!ctx) throw new Error('useEarthquakes must be used inside EarthquakeProvider');
   return ctx;
 }
-

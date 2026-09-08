@@ -36,7 +36,13 @@ export function TopBar() {
 
       <div className="hidden items-center gap-2 rounded border border-border bg-surface-raised px-3 py-1.5 sm:flex">
         <Search className="h-3.5 w-3.5 text-content-tertiary" strokeWidth={2} />
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="lat,lon atau tekan Enter untuk lokasi Anda" onKeyDown={(e) => e.key === 'Enter' && applyInput()} className="w-64 bg-transparent text-sm text-content-primary placeholder:text-content-tertiary focus:outline-none" />
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="lat,lon atau tekan Enter untuk lokasi Anda"
+          onKeyDown={(e) => e.key === 'Enter' && applyInput()}
+          className="w-64 bg-transparent text-sm text-content-primary placeholder:text-content-tertiary focus:outline-none"
+        />
         <select value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} className="ml-2 rounded bg-transparent text-sm text-content-primary">
           <option value={50}>50 km</option>
           <option value={100}>100 km</option>
@@ -51,7 +57,9 @@ export function TopBar() {
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--severity-minor)' }} />
           <span className="text-[11px]">{radiusKm} km</span>
         </div>
-        <div className="text-[11px]">{center.latitude.toFixed(2)}, {center.longitude.toFixed(2)}</div>
+        <div className="text-[11px]">
+          {center.latitude.toFixed(2)}, {center.longitude.toFixed(2)}
+        </div>
       </div>
     </header>
   );
