@@ -43,6 +43,8 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
           setRawData(json.data ?? []);
           setError(null);
         }
+
+        console.log(`Fetched ${json} earthquakes from API`);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Gagal memuat data');
       } finally {

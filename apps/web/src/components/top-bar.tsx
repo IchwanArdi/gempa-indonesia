@@ -43,7 +43,7 @@ export function TopBar() {
           onKeyDown={(e) => e.key === 'Enter' && applyInput()}
           className="w-64 bg-transparent text-sm text-content-primary placeholder:text-content-tertiary focus:outline-none"
         />
-        <select value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} className="ml-2 rounded bg-transparent text-sm text-content-primary">
+        <select value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} className="ml-2 rounded text-sm text-content-primary bg-surface-raised border border-border px-2 py-1.5 focus:outline-none">
           <option value={50}>50 km</option>
           <option value={100}>100 km</option>
           <option value={250}>250 km</option>

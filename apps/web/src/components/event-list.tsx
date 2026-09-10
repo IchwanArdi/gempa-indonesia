@@ -19,9 +19,7 @@ export function EventList() {
     if (rawData && rawData.length > 0) {
       return (
         <div className="p-4 text-sm text-content-secondary">
-          <p>
-            Ada {rawData.length} gempa di database, tetapi tidak ada yang cocok dengan lokasi dan radius terpilih.
-          </p>
+          <p>Ada {rawData.length} gempa di database, tetapi tidak ada yang cocok dengan lokasi dan radius terpilih.</p>
           <div className="mt-3 flex gap-2">
             <button onClick={() => setRadiusKm(20000)} className="rounded bg-brand px-3 py-1 text-xs font-medium text-content-primary">
               Tampilkan semua gempa
@@ -68,6 +66,10 @@ export function EventList() {
               <p className="mt-0.5 truncate text-xs text-content-secondary">
                 {severityLabel[severity]} · Kedalaman {eq.depthKm} km · {distanceKm.toFixed(0)} km
               </p>
+
+              <p className="mt-0.5 text-xs text-content-tertiary">{eq.region}</p>
+
+              <p className="mt-0.5 text-xs text-content-tertiary">{eq.felt}</p>
 
               <p className="mt-0.5 font-mono text-[11px] text-content-tertiary">
                 {eq.latitude.toFixed(2)}, {eq.longitude.toFixed(2)}
