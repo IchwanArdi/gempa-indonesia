@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import type { EarthquakesResponse } from '@trackly/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BmkgService } from './bmkg.service.js';
 
@@ -15,7 +16,7 @@ export class EarthquakesService {
   ) {}
 
   // the findAll method retrieves the latest 50 earthquake records from the database and returns them along with the total count of records
-  async findAll() {
+  async findAll(): Promise<EarthquakesResponse> {
     const [data, total] = await Promise.all([
       this.prisma.earthquake.findMany({
         orderBy: { occurredAt: 'desc' },
@@ -27,7 +28,7 @@ export class EarthquakesService {
     return { data, meta: { total } };
   }
 
-  // the handleScheduledIngest method is a cron job that runs every 10 seconds to ingest earthquake data from the BMKG API
+  // The handleScheduledIngest method is a cron job that runs every 5 minutes to ingest earthquake data from the BMKG API
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleScheduledIngest() {
     this.logger.log('Scheduled ingest from BMKG started');
@@ -37,23 +38,29 @@ export class EarthquakesService {
     );
   }
 
-  // the ingestFromBmkg method fetches earthquake data from the BMKG API and ingests it into the database
+  // The ingestFromBmkg method fetches earthquake data from the BMKG API and ingests it into the database
   async ingestFromBmkg() {
     const earthquakes = await this.bmkgService.fetchDirasakan();
+    if (!earthquakes.length) {
+      return { fetched: 0, processed: 0 };
+    }
 
-    let created = 0;
-    let skipped = 0;
-
-    // loop through each earthquake record and upsert it into the database
+    let processed = 0;
     for (const eq of earthquakes) {
-      const result = await this.prisma.earthquake.upsert({
+      await this.prisma.earthquake.upsert({
         where: {
           source_externalId: {
             source: eq.source,
             externalId: eq.externalId,
           },
         },
-        update: {}, // kalau sudah ada, nggak usah diubah apa-apa
+        update: {
+          magnitude: eq.magnitude,
+          depthKm: eq.depthKm,
+          latitude: eq.latitude,
+          longitude: eq.longitude,
+          occurredAt: eq.occurredAt,
+        },
         create: {
           externalId: eq.externalId,
           source: eq.source,
@@ -64,22 +71,21 @@ export class EarthquakesService {
           occurredAt: eq.occurredAt,
         },
       });
-
-      // Update the geom column using raw SQL to set the geometry point based on latitude and longitude
-      await this.prisma.$executeRaw`
-            UPDATE "Earthquake"
-            SET geom = ST_SetSRID(ST_MakePoint(${eq.longitude}, ${eq.latitude}), 4326)::geography
-            WHERE id = ${result.id}
-            `;
-
-      // Increment the created or skipped counter based on whether the record was newly created or already existed
-      result ? created++ : skipped++;
+      processed++;
     }
 
-    this.logger.log(`Ingest selesai: ${earthquakes.length} data diproses`);
+    // Single batch update to populate spatial geometry for all records with missing geom
+    await this.prisma.$executeRaw`
+      UPDATE "Earthquake"
+      SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+      WHERE geom IS NULL;
+    `;
+
+    this.logger.log(`Ingest selesai: ${processed} data diproses`);
 
     return {
       fetched: earthquakes.length,
+      processed,
     };
   }
 
