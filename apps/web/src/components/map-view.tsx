@@ -1,16 +1,22 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { setWorkerUrl } from 'maplibre-gl';
 import Map, { Marker, Popup, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
 import { useEarthquakes } from '@/lib/use-earthquakes';
 import { getSeverity, severityColor, formatRelativeTime } from '@/lib/severity';
 
-// Dua style: dark minimal untuk fokus data, dan light minimal bila
-// user butuh kontras lebih jelas. Kita berikan toggle agar mudah
-// beralih menurut kebutuhan.
+// MapLibre v6: worker harus di-set secara eksplisit agar Turbopack/Webpack
+// bisa menemukan file worker untuk memproses vector tiles.
+// Tanpa ini, peta akan blank (marker tetap muncul karena HTML overlay,
+// tapi tile basemap tidak ter-render).
+setWorkerUrl('/maplibre-gl-worker.mjs');
+
+// OpenFreeMap — gratis, tanpa API key, tanpa quota.
+// CARTO basemaps sekarang wajib pakai API key, makanya tile tidak muncul.
 const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark: 'https://tiles.openfreemap.org/styles/dark',
+  light: 'https://tiles.openfreemap.org/styles/positron',
 } as const;
 
 // Pusat awal peta: kira-kira tengah Indonesia
@@ -30,18 +36,22 @@ export function MapView() {
   return (
     <Map
       ref={mapRef}
-      initialViewState={
-        {
-          longitude: center.longitude,
-          latitude: center.latitude,
-          zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)),
-          bearing: 0,
-          pitch: 0,
-          padding: 0,
-        } as any
-      }
+      initialViewState={{
+        longitude: center.longitude,
+        latitude: center.latitude,
+        zoom: Math.max(3, 6 - Math.log2(radiusKm / 100)),
+      }}
       mapStyle={MAP_STYLES[styleKey]}
       style={{ width: '100%', height: '100%' }}
+      onLoad={(e) => {
+        const map = e.target;
+        map.on('styleimagemissing', (ev: { id: string }) => {
+          if (!map.hasImage(ev.id)) {
+            const emptyImage = { width: 1, height: 1, data: new Uint8Array([0, 0, 0, 0]) };
+            map.addImage(ev.id, emptyImage as any);
+          }
+        });
+      }}
     >
       {data.map((eq) => {
         const severity = getSeverity(eq.magnitude);
@@ -125,15 +135,15 @@ export function MapView() {
           </button>
           <div className="rounded bg-surface px-3 py-1 text-xs border border-border">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-minor)' }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-severity-minor)' }} />
               <span className="text-[11px]">Kecil</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-moderate)' }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-severity-moderate)' }} />
               <span className="text-[11px]">Sedang</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--severity-strong)' }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-severity-strong)' }} />
               <span className="text-[11px]">Kuat</span>
             </div>
           </div>

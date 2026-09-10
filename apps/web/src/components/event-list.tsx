@@ -20,7 +20,7 @@ export function EventList() {
       return (
         <div className="p-4 text-sm text-content-secondary">
           <p>
-            Ada {rawData.length} gempa di sumber, tapi tidak ada yang cocok dengan radius saat ini ({Math.round(Math.max(0, Number((rawData.length && data.length) || 0)))}).
+            Ada {rawData.length} gempa di database, tetapi tidak ada yang cocok dengan lokasi dan radius terpilih.
           </p>
           <div className="mt-3 flex gap-2">
             <button onClick={() => setRadiusKm(20000)} className="rounded bg-brand px-3 py-1 text-xs font-medium text-content-primary">

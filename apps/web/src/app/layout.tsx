@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { EarthquakeProvider } from '@/lib/use-earthquakes';
 
 // Inter untuk teks UI (label, deskripsi, navigasi) — netral dan

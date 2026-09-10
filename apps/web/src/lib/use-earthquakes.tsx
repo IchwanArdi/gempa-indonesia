@@ -1,23 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { Earthquake, EarthquakesResponse } from '@trackly/types';
 import { haversineDistanceKm } from './distance';
 
-export interface Earthquake {
-  id: string;
-  externalId: string;
-  source: string;
-  magnitude: number;
-  depthKm: number;
-  latitude: number;
-  longitude: number;
-  occurredAt: string;
-}
-
-interface EarthquakesResponse {
-  data: Earthquake[];
-  meta: { total: number };
-}
+export type { Earthquake };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -36,6 +23,7 @@ const EarthquakeContext = createContext<ContextValue | null>(null);
 
 export function EarthquakeProvider({ children }: { children: React.ReactNode }) {
   const [rawData, setRawData] = useState<Earthquake[]>([]);
+  const [nearbyData, setNearbyData] = useState<Earthquake[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +40,7 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
 
         const json: EarthquakesResponse = await res.json();
         if (!cancelled) {
-          setRawData(json.data);
+          setRawData(json.data ?? []);
           setError(null);
         }
       } catch (err) {
@@ -70,14 +58,38 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchNearby() {
+      try {
+        const url = `${API_BASE_URL}/earthquakes/nearby?lat=${center.latitude}&lng=${center.longitude}&radiusKm=${radiusKm}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const json: EarthquakesResponse = await res.json();
+          if (!cancelled && json.data) {
+            setNearbyData(json.data);
+          }
+        }
+      } catch {
+        if (!cancelled) setNearbyData(null);
+      }
+    }
+
+    fetchNearby();
+    return () => {
+      cancelled = true;
+    };
+  }, [center, radiusKm]);
+
   const data = useMemo(() => {
+    if (nearbyData !== null) return nearbyData;
     if (!rawData || rawData.length === 0) return [];
     return rawData.filter((eq) => {
-      // filter by distance to center
       const d = haversineDistanceKm(center.latitude, center.longitude, eq.latitude, eq.longitude);
       return d <= radiusKm;
     });
-  }, [rawData, center, radiusKm]);
+  }, [nearbyData, rawData, center, radiusKm]);
 
   return <EarthquakeContext.Provider value={{ rawData, data, isLoading, error, center, radiusKm, setCenter, setRadiusKm }}>{children}</EarthquakeContext.Provider>;
 }

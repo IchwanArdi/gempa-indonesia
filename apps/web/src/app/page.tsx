@@ -1,5 +1,5 @@
 import { TopBar } from '@/components/top-bar';
-import { MapView } from '@/components/map-view';
+import { MapWrapper } from '@/components/map-wrapper';
 import { EventList } from '@/components/event-list';
 
 export default function HomePage() {
@@ -15,7 +15,7 @@ export default function HomePage() {
       */}
       <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
         <div className="h-[40vh] w-full md:h-full md:flex-1">
-          <MapView />
+          <MapWrapper />
         </div>
         <aside className="w-full flex-1 overflow-y-auto border-t border-border md:h-full md:w-95 md:flex-none md:border-l md:border-t-0">
           <EventList />

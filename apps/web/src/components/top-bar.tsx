@@ -54,7 +54,7 @@ export function TopBar() {
 
       <div className="flex items-center gap-3 text-xs text-content-secondary">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--severity-minor)' }} />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--color-severity-minor)' }} />
           <span className="text-[11px]">{radiusKm} km</span>
         </div>
         <div className="text-[11px]">

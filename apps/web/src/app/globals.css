@@ -1,14 +1,5 @@
 @import 'tailwindcss';
 
-/* Style default MapLibre GL, wajib di-import biar peta render benar */
-@import 'maplibre-gl/dist/maplibre-gl.css';
-
-/*
-  Tailwind v4: konfigurasi lewat CSS, bukan tailwind.config.ts/js lagi.
-  Ini SATU-SATUNYA tempat token warna didefinisikan — jangan bikin
-  tailwind.config.ts/cjs lagi, itu tidak akan terbaca dan cuma bikin
-  bingung (nilai beda dengan yang di sini = bug tersembunyi).
-*/
 @theme {
   --color-canvas: #0b0d10;
   --color-surface: #14171b;
