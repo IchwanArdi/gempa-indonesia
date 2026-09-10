@@ -7,6 +7,8 @@ export interface Earthquake {
   latitude: number;
   longitude: number;
   occurredAt: string | Date;
+  region: string;
+  felt: string;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   distanceKm?: number;
@@ -20,4 +22,3 @@ export interface EarthquakesResponse {
     radiusKm?: number;
   };
 }
-
