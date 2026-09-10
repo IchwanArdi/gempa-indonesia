@@ -1,17 +1,23 @@
 export interface Earthquake {
   id: string;
-  source: 'BMKG' | 'USGS';
-
+  externalId: string;
+  source: 'BMKG' | 'USGS' | string;
   magnitude: number;
-  magnitudeType?: string;
-
+  depthKm: number;
   latitude: number;
   longitude: number;
-  depthKm: number;
-
-  locationName: string;
-  occurredAt: string;
-
-  felt?: number;
-  tsunami?: boolean;
+  occurredAt: string | Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  distanceKm?: number;
 }
+
+export interface EarthquakesResponse {
+  data: Earthquake[];
+  meta: {
+    total: number;
+    center?: { lat: number; lng: number };
+    radiusKm?: number;
+  };
+}
+
