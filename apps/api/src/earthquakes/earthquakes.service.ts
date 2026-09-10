@@ -59,6 +59,8 @@ export class EarthquakesService {
           depthKm: eq.depthKm,
           latitude: eq.latitude,
           longitude: eq.longitude,
+          region: eq.region,
+          felt: eq.felt,
           occurredAt: eq.occurredAt,
         },
         create: {
@@ -68,6 +70,8 @@ export class EarthquakesService {
           depthKm: eq.depthKm,
           latitude: eq.latitude,
           longitude: eq.longitude,
+          region: eq.region,
+          felt: eq.felt,
           occurredAt: eq.occurredAt,
         },
       });
@@ -103,6 +107,8 @@ export class EarthquakesService {
         latitude: number;
         longitude: number;
         occurredAt: Date;
+        region: string;
+        felt: string;
         distanceKm: number;
       }>
     >`
@@ -115,6 +121,8 @@ export class EarthquakesService {
         latitude,
         longitude,
         "occurredAt",
+        region,
+        felt,
         ST_Distance(
           geom,
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography

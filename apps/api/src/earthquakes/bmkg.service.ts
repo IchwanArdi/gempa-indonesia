@@ -29,6 +29,8 @@ export interface NormalizedEarthquake {
   depthKm: number;
   latitude: number;
   longitude: number;
+  region: string;
+  felt: string;
   occurredAt: Date;
 }
 
@@ -63,6 +65,8 @@ export class BmkgService {
       depthKm: Number(raw.Kedalaman.replace(' km', '')),
       latitude,
       longitude,
+      region: raw.Wilayah,
+      felt: raw.Dirasakan || '',
       occurredAt: new Date(raw.DateTime),
     };
   }
