@@ -44,7 +44,7 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
           setError(null);
         }
 
-        console.log(`Fetched ${json} earthquakes from API`);
+        console.log(`Fetched ${json.data?.length ?? 0} earthquakes from API`);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Gagal memuat data');
       } finally {

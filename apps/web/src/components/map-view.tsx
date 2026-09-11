@@ -6,25 +6,12 @@ import Map, { Marker, Popup, NavigationControl, type MapRef } from 'react-map-gl
 import { useEarthquakes } from '@/lib/use-earthquakes';
 import { getSeverity, severityColor, formatRelativeTime } from '@/lib/severity';
 
-// MapLibre v6: worker harus di-set secara eksplisit agar Turbopack/Webpack
-// bisa menemukan file worker untuk memproses vector tiles.
-// Tanpa ini, peta akan blank (marker tetap muncul karena HTML overlay,
-// tapi tile basemap tidak ter-render).
 setWorkerUrl('/maplibre-gl-worker.mjs');
 
-// OpenFreeMap — gratis, tanpa API key, tanpa quota.
-// CARTO basemaps sekarang wajib pakai API key, makanya tile tidak muncul.
 const MAP_STYLES = {
   dark: 'https://tiles.openfreemap.org/styles/dark',
   light: 'https://tiles.openfreemap.org/styles/positron',
 } as const;
-
-// Pusat awal peta: kira-kira tengah Indonesia
-const INITIAL_VIEW = {
-  longitude: 118,
-  latitude: -2,
-  zoom: 4.2,
-};
 
 export function MapView() {
   const { data, center, radiusKm } = useEarthquakes();
@@ -58,29 +45,24 @@ export function MapView() {
 
         return (
           <Marker key={eq.id} longitude={eq.longitude} latitude={eq.latitude} anchor="center">
-            {/*
-              Ukuran marker proporsional ke magnitude — encode informasi
-              lewat ukuran + warna sekaligus, bukan dekorasi ganda.
-              Ring luar transparan memberi "denyut" area tanpa animasi
-              berlebihan (statis, cuma opacity).
-            */}
             <div
               onClick={() => setSelected(eq.id)}
               onMouseEnter={() => setHovered(eq.id)}
               onMouseLeave={() => setHovered((h) => (h === eq.id ? null : h))}
-              className="rounded-full flex items-center justify-center"
+              className="rounded-full flex items-center justify-center relative"
               style={{
                 width: `${12 + eq.magnitude * 3}px`,
                 height: `${12 + eq.magnitude * 3}px`,
                 backgroundColor: severityColor[severity],
-                border: '2px solid rgba(0,0,0,0.75)',
-                boxShadow: `0 0 0 8px ${severityColor[severity]}33`,
+                // Jika gempa susulan, buat border putus-putus (dashed) sebagai pembeda visual murni
+                border: eq.isAftershock ? '2px dashed #fff' : '2px solid rgba(0,0,0,0.75)',
+                boxShadow: eq.isAftershock ? `0 0 0 4px ${severityColor[severity]}33` : `0 0 0 8px ${severityColor[severity]}33`,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-              title={`M${eq.magnitude.toFixed(1)} — ${eq.depthKm}km`}
+              title={`${eq.isAftershock ? '[Susulan] ' : ''}M${eq.magnitude.toFixed(1)} — ${eq.depthKm}km`}
             >
               <div style={{ color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{eq.magnitude.toFixed(1)}</div>
             </div>
@@ -94,9 +76,13 @@ export function MapView() {
           if (!eq) return null;
           return (
             <Popup longitude={eq.longitude} latitude={eq.latitude} onClose={() => setSelected(null)} closeButton={true} anchor="top">
-              <div className="w-48">
+              <div className="w-52">
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-mono text-sm font-medium">M{eq.magnitude.toFixed(1)}</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="font-mono text-sm font-medium">M{eq.magnitude.toFixed(1)}</div>
+                    {/* Badge Susulan di dalam Popup Peta */}
+                    {eq.isAftershock && <span className="rounded bg-orange-500/20 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-orange-400 border border-orange-500/30">Susulan</span>}
+                  </div>
                   <div className="text-[11px] text-content-tertiary">{formatRelativeTime(new Date(eq.occurredAt))}</div>
                 </div>
                 <p className="mt-1 text-xs text-content-secondary">
@@ -116,7 +102,8 @@ export function MapView() {
           if (!he) return null;
           return (
             <Popup longitude={he.longitude} latitude={he.latitude} closeButton={false} anchor="bottom" offset={[0, -10]}>
-              <div className="px-2 py-1 rounded bg-surface-raised text-xs">
+              <div className="px-2 py-1 rounded bg-surface-raised text-xs flex items-center gap-1">
+                {he.isAftershock && <span className="text-orange-400 text-[10px]">●</span>}
                 <strong className="font-mono">M{he.magnitude.toFixed(1)}</strong> · {he.depthKm} km
               </div>
             </Popup>
@@ -127,7 +114,6 @@ export function MapView() {
         <NavigationControl showCompass={false} />
       </div>
 
-      {/* style toggle + legend */}
       <div style={{ position: 'absolute', left: 12, top: 12, zIndex: 2 }}>
         <div className="flex gap-2">
           <button onClick={() => setStyleKey((s) => (s === 'dark' ? 'light' : 'dark'))} className="rounded bg-surface-raised px-3 py-1 text-xs border border-border">
@@ -145,6 +131,11 @@ export function MapView() {
             <div className="flex items-center gap-2 mt-1">
               <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-severity-strong)' }} />
               <span className="text-[11px]">Kuat</span>
+            </div>
+            {/* Tambahan Legenda untuk Gempa Susulan */}
+            <div className="flex items-center gap-2 mt-1 pt-1 border-t border-border/50">
+              <span className="h-2 w-2 rounded-full border border-dashed border-white bg-gray-500" />
+              <span className="text-[11px] text-content-secondary">Gempa Susulan</span>
             </div>
           </div>
         </div>

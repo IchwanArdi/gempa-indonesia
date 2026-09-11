@@ -34,50 +34,45 @@ export function EventList() {
               Reset center & radius
             </button>
           </div>
-          <p className="mt-3 text-xs text-content-tertiary">Jika masih kosong, pastikan backend berjalan dan `NEXT_PUBLIC_API_URL` mengarah ke server API.</p>
         </div>
       );
     }
-
-    return <div className="p-4 text-sm text-content-secondary">Belum ada data gempa untuk ditampilkan.</div>;
+    return <div className="p-4 text-sm text-content-secondary">Tidak ada data gempa tersedia.</div>;
   }
 
   return (
-    <ul>
+    <div className="divide-y divide-border overflow-y-auto h-full">
       {data.map((eq) => {
         const severity = getSeverity(eq.magnitude);
-        const distanceKm = haversineDistanceKm(center.latitude, center.longitude, eq.latitude, eq.longitude);
-
-        const onClick = () => {
-          setCenter({ latitude: eq.latitude, longitude: eq.longitude });
-        };
 
         return (
-          <li key={eq.id} onClick={onClick} className="flex cursor-pointer items-start gap-3 border-b border-border px-4 py-3 hover:bg-surface-raised">
-            {/* Indikator severity — warna fungsional, konsisten dengan marker di peta */}
-            <span className="mt-1.5 h-2 w-2 flex-none rounded-full" style={{ backgroundColor: severityColor[severity] }} />
+          <div key={eq.id} className="p-4 hover:bg-surface-hover transition-colors flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-base font-bold" style={{ color: severityColor[severity] }}>
+                  M {eq.magnitude.toFixed(1)}
+                </span>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-mono text-sm font-medium text-content-primary">M{eq.magnitude.toFixed(1)}</span>
-                <span className="flex-none text-xs text-content-tertiary">{formatRelativeTime(new Date(eq.occurredAt))}</span>
+                {/* RENDER BADGE SUSULAN */}
+                {eq.isAftershock && <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">Susulan</span>}
+
+                <span className="text-xs text-content-tertiary font-mono">{eq.depthKm} km</span>
               </div>
 
-              <p className="mt-0.5 truncate text-xs text-content-secondary">
-                {severityLabel[severity]} · Kedalaman {eq.depthKm} km · {distanceKm.toFixed(0)} km
-              </p>
+              <p className="text-sm font-medium text-content-primary mt-1 truncate">{eq.region}</p>
 
-              <p className="mt-0.5 text-xs text-content-tertiary">{eq.region}</p>
-
-              <p className="mt-0.5 text-xs text-content-tertiary">{eq.felt}</p>
-
-              <p className="mt-0.5 font-mono text-[11px] text-content-tertiary">
-                {eq.latitude.toFixed(2)}, {eq.longitude.toFixed(2)}
-              </p>
+              {eq.felt && <p className="text-xs text-content-secondary mt-0.5 italic truncate">Dirasakan: {eq.felt}</p>}
             </div>
-          </li>
+
+            <div className="text-right flex flex-col items-end gap-1 shrink-0">
+              <span className="text-xs text-content-tertiary">{formatRelativeTime(new Date(eq.occurredAt))}</span>
+              <span className="text-[11px] font-mono text-content-quad">
+                {eq.latitude.toFixed(2)}°, {eq.longitude.toFixed(2)}°
+              </span>
+            </div>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }
