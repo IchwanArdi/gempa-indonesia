@@ -2,7 +2,9 @@
 
 import { useRef, useState } from 'react';
 import { setWorkerUrl } from 'maplibre-gl';
-import Map, { Marker, Popup, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
+import Map, { Layer, Marker, NavigationControl, Popup, Source, type MapRef } from 'react-map-gl/maplibre';
+import { MmiLegend } from '@/components/mmi-legend';
+import { estimateUserMmi, generateMmiGeoJson } from '@/lib/mmi';
 import { useEarthquakes } from '@/lib/use-earthquakes';
 import { getSeverity, severityColor, formatRelativeTime } from '@/lib/severity';
 
@@ -14,11 +16,12 @@ const MAP_STYLES = {
 } as const;
 
 export function MapView() {
-  const { data, center, radiusKm } = useEarthquakes();
+  const { data, center, radiusKm, selectedId, setSelectedId, selectedEarthquake } = useEarthquakes();
   const mapRef = useRef<MapRef>(null);
-  const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<'dark' | 'light'>('dark');
+  const mmiGeoJson = selectedEarthquake ? generateMmiGeoJson(selectedEarthquake) : null;
+  const userEstimate = selectedEarthquake ? estimateUserMmi(selectedEarthquake, center.latitude, center.longitude) : null;
 
   return (
     <Map
@@ -46,7 +49,7 @@ export function MapView() {
         return (
           <Marker key={eq.id} longitude={eq.longitude} latitude={eq.latitude} anchor="center">
             <div
-              onClick={() => setSelected(eq.id)}
+              onClick={() => setSelectedId(eq.id)}
               onMouseEnter={() => setHovered(eq.id)}
               onMouseLeave={() => setHovered((h) => (h === eq.id ? null : h))}
               className="rounded-full flex items-center justify-center relative"
@@ -70,31 +73,47 @@ export function MapView() {
         );
       })}
 
-      {selected &&
-        (() => {
-          const eq = data.find((e) => e.id === selected) || null;
-          if (!eq) return null;
-          return (
-            <Popup longitude={eq.longitude} latitude={eq.latitude} onClose={() => setSelected(null)} closeButton={true} anchor="top">
-              <div className="w-52">
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="font-mono text-sm font-medium">M{eq.magnitude.toFixed(1)}</div>
-                    {/* Badge Susulan di dalam Popup Peta */}
-                    {eq.isAftershock && <span className="rounded bg-orange-500/20 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-orange-400 border border-orange-500/30">Susulan</span>}
-                  </div>
-                  <div className="text-[11px] text-content-tertiary">{formatRelativeTime(new Date(eq.occurredAt))}</div>
-                </div>
-                <p className="mt-1 text-xs text-content-secondary">
-                  {getSeverity(eq.magnitude) !== 'minor' ? getSeverity(eq.magnitude) : ''} · Kedalaman {eq.depthKm} km
-                </p>
-                <p className="mt-1 text-xs text-content-tertiary font-mono">
-                  {eq.latitude.toFixed(2)}, {eq.longitude.toFixed(2)}
-                </p>
+      {selectedEarthquake && (
+        <Popup longitude={selectedEarthquake.longitude} latitude={selectedEarthquake.latitude} onClose={() => setSelectedId(null)} closeButton={true} anchor="top">
+          <div className="w-52">
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="font-mono text-sm font-medium">M{selectedEarthquake.magnitude.toFixed(1)}</div>
+                {selectedEarthquake.isAftershock && <span className="rounded bg-orange-500/20 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-orange-400 border border-orange-500/30">Susulan</span>}
               </div>
-            </Popup>
-          );
-        })()}
+              <div className="text-[11px] text-content-tertiary">{formatRelativeTime(new Date(selectedEarthquake.occurredAt))}</div>
+            </div>
+            <p className="mt-1 text-xs text-content-secondary">
+              {getSeverity(selectedEarthquake.magnitude) !== 'minor' ? getSeverity(selectedEarthquake.magnitude) : ''} · Kedalaman {selectedEarthquake.depthKm} km
+            </p>
+            <p className="mt-1 text-xs text-content-tertiary font-mono">
+              {selectedEarthquake.latitude.toFixed(2)}, {selectedEarthquake.longitude.toFixed(2)}
+            </p>
+          </div>
+        </Popup>
+      )}
+
+      {mmiGeoJson && (
+        <Source id="mmi-radius-source" type="geojson" data={mmiGeoJson}>
+          <Layer
+            id="mmi-radius-fill"
+            type="fill"
+            paint={{
+              'fill-color': ['get', 'color'],
+              'fill-opacity': ['get', 'fillOpacity'],
+            }}
+          />
+          <Layer
+            id="mmi-radius-line"
+            type="line"
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 1.5,
+              'line-opacity': 0.8,
+            }}
+          />
+        </Source>
+      )}
 
       {hovered &&
         (() => {
@@ -132,7 +151,6 @@ export function MapView() {
               <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-severity-strong)' }} />
               <span className="text-[11px]">Kuat</span>
             </div>
-            {/* Tambahan Legenda untuk Gempa Susulan */}
             <div className="flex items-center gap-2 mt-1 pt-1 border-t border-border/50">
               <span className="h-2 w-2 rounded-full border border-dashed border-white bg-gray-500" />
               <span className="text-[11px] text-content-secondary">Gempa Susulan</span>
@@ -140,6 +158,27 @@ export function MapView() {
           </div>
         </div>
       </div>
+
+      {selectedEarthquake && (
+        <MmiLegend
+          earthquake={selectedEarthquake}
+          zones={
+            selectedEarthquake
+              ? generateMmiGeoJson(selectedEarthquake).features.map((feature: { properties?: Record<string, unknown> }) => ({
+                  level: String(feature.properties?.zone ?? ''),
+                  mmi: Number(feature.properties?.mmi ?? 0),
+                  label: String(feature.properties?.label ?? ''),
+                  description: String(feature.properties?.description ?? ''),
+                  color: String(feature.properties?.color ?? '#0284c7'),
+                  fillOpacity: Number(feature.properties?.fillOpacity ?? 0.08),
+                  radiusKm: Number(feature.properties?.radiusKm ?? 0),
+                }))
+              : []
+          }
+          userEstimate={userEstimate ?? undefined}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </Map>
   );
 }

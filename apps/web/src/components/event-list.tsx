@@ -5,7 +5,7 @@ import { getSeverity, severityLabel, severityColor, formatRelativeTime } from '@
 import { haversineDistanceKm } from '@/lib/distance';
 
 export function EventList() {
-  const { data, rawData, isLoading, error, center, setCenter, setRadiusKm } = useEarthquakes();
+  const { data, rawData, isLoading, error, center, setCenter, setRadiusKm, selectedId, setSelectedId } = useEarthquakes();
 
   if (isLoading) {
     return <div className="p-4 text-sm text-content-secondary">Memuat data...</div>;
@@ -44,16 +44,21 @@ export function EventList() {
     <div className="divide-y divide-border overflow-y-auto h-full">
       {data.map((eq) => {
         const severity = getSeverity(eq.magnitude);
+        const isSelected = selectedId === eq.id;
 
         return (
-          <div key={eq.id} className="p-4 hover:bg-surface-hover transition-colors flex items-start justify-between gap-4">
+          <button
+            key={eq.id}
+            type="button"
+            onClick={() => setSelectedId(eq.id)}
+            className={['w-full p-4 text-left transition-colors flex items-start justify-between gap-4', isSelected ? 'bg-surface-hover ring-1 ring-inset ring-brand/60' : 'hover:bg-surface-hover'].join(' ')}
+          >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono text-base font-bold" style={{ color: severityColor[severity] }}>
                   M {eq.magnitude.toFixed(1)}
                 </span>
 
-                {/* RENDER BADGE SUSULAN */}
                 {eq.isAftershock && <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">Susulan</span>}
 
                 <span className="text-xs text-content-tertiary font-mono">{eq.depthKm} km</span>
@@ -70,7 +75,7 @@ export function EventList() {
                 {eq.latitude.toFixed(2)}°, {eq.longitude.toFixed(2)}°
               </span>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

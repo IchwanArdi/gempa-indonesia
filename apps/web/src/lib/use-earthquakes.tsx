@@ -15,8 +15,11 @@ type ContextValue = {
   error: string | null;
   center: { latitude: number; longitude: number };
   radiusKm: number;
+  selectedId: string | null;
+  selectedEarthquake: Earthquake | null;
   setCenter: (c: { latitude: number; longitude: number }) => void;
   setRadiusKm: (r: number) => void;
+  setSelectedId: (id: string | null) => void;
 };
 
 const EarthquakeContext = createContext<ContextValue | null>(null);
@@ -26,6 +29,7 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
   const [nearbyData, setNearbyData] = useState<Earthquake[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [center, setCenter] = useState({ latitude: -2, longitude: 118 });
   const [radiusKm, setRadiusKm] = useState(500);
@@ -93,7 +97,33 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
     });
   }, [nearbyData, rawData, center, radiusKm]);
 
-  return <EarthquakeContext.Provider value={{ rawData, data, isLoading, error, center, radiusKm, setCenter, setRadiusKm }}>{children}</EarthquakeContext.Provider>;
+  useEffect(() => {
+    if (selectedId && !data.some((eq) => eq.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [selectedId, data]);
+
+  const selectedEarthquake = useMemo(() => data.find((eq) => eq.id === selectedId) ?? null, [data, selectedId]);
+
+  return (
+    <EarthquakeContext.Provider
+      value={{
+        rawData,
+        data,
+        isLoading,
+        error,
+        center,
+        radiusKm,
+        selectedId,
+        selectedEarthquake,
+        setCenter,
+        setRadiusKm,
+        setSelectedId,
+      }}
+    >
+      {children}
+    </EarthquakeContext.Provider>
+  );
 }
 
 export function useEarthquakes() {
