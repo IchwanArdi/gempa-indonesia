@@ -9,6 +9,8 @@ export interface Earthquake {
   occurredAt: string | Date;
   region: string;
   felt: string;
+  isAftershock?: boolean;
+  mainshockId?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   distanceKm?: number;
