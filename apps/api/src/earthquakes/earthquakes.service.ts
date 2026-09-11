@@ -85,8 +85,42 @@ export class EarthquakesService {
       WHERE geom IS NULL;
     `;
 
+    // Single batch update to detect and mark aftershocks based on spatial and temporal proximity to mainshocks
+    const updatedAftershocks = await this.prisma.$executeRaw`
+      UPDATE "Earthquake" AS target
+      SET
+        "isAftershock" = true,
+        "mainshockId" = candidate."mainId"
+      FROM (
+        SELECT DISTINCT ON (e.id)
+          e.id AS "eqId",
+          main.id AS "mainId"
+        FROM "Earthquake" e
+        JOIN "Earthquake" main ON
+          main.id != e.id
+          AND main.magnitude > e.magnitude
+          AND main."occurredAt" BETWEEN (e."occurredAt" - INTERVAL '72 hours') AND e."occurredAt"
+          AND ST_DWithin(e.geom, main.geom, 50000)  -- 50km dalam meter
+        WHERE e."isAftershock" = false
+          AND e."mainshockId" IS NULL
+          AND e.geom IS NOT NULL
+          AND main.geom IS NOT NULL
+        ORDER BY e.id, main.magnitude DESC  -- pilih mainshock terbesar
+      ) candidate
+      WHERE target.id = candidate."eqId";
+    `;
+
+    // Log the number of aftershocks detected and updated
+    if (updatedAftershocks > 0) {
+      this.logger.log(
+        `Berhasil mendeteksi & memperbarui ${updatedAftershocks} gempa susulan sebagai aftershock`,
+      );
+    }
+
+    // Log the number of records processed after ingesting from BMKG
     this.logger.log(`Ingest selesai: ${processed} data diproses`);
 
+    // Return the number of records fetched and processed after ingesting from BMKG
     return {
       fetched: earthquakes.length,
       processed,
@@ -97,6 +131,7 @@ export class EarthquakesService {
   async findNearby(lat: number, lng: number, radiusKm: number) {
     const radiusMeters = radiusKm * 1000;
 
+    // Use raw SQL query to find earthquakes within the specified radius using PostGIS functions
     const data = await this.prisma.$queryRaw<
       Array<{
         id: string;
@@ -109,6 +144,8 @@ export class EarthquakesService {
         occurredAt: Date;
         region: string;
         felt: string;
+        isAftershock: boolean;
+        mainshockId: string | null;
         distanceKm: number;
       }>
     >`
@@ -123,6 +160,8 @@ export class EarthquakesService {
         "occurredAt",
         region,
         felt,
+        "isAftershock",
+        "mainshockId",
         ST_Distance(
           geom,
           ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography

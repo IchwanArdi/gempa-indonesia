@@ -25,6 +25,12 @@ model Earthquake {
   region    String
   felt      String
 
+  // aftershocks detection
+  isAftershock Boolean  @default(false)
+  mainshockId  String?
+  mainshock    Earthquake?  @relation("AftershockOf", fields: [mainshockId], references: [id])
+  aftershocks  Earthquake[] @relation("AftershockOf")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -34,6 +40,7 @@ model Earthquake {
   @@index([occurredAt])
   @@index([magnitude])
   @@index([source])
+  @@index([mainshockId]) 
 }
 
 enum EarthquakeSource {
