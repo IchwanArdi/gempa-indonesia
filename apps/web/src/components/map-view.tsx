@@ -16,7 +16,7 @@ const MAP_STYLES = {
 } as const;
 
 export function MapView() {
-  const { data, center, radiusKm, selectedId, setSelectedId, selectedEarthquake } = useEarthquakes();
+  const { data, center, radiusKm, setSelectedId, selectedEarthquake } = useEarthquakes();
   const mapRef = useRef<MapRef>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<'dark' | 'light'>('dark');
@@ -38,7 +38,7 @@ export function MapView() {
         map.on('styleimagemissing', (ev: { id: string }) => {
           if (!map.hasImage(ev.id)) {
             const emptyImage = { width: 1, height: 1, data: new Uint8Array([0, 0, 0, 0]) };
-            map.addImage(ev.id, emptyImage as any);
+            map.addImage(ev.id, emptyImage as unknown as Parameters<typeof map.addImage>[1]);
           }
         });
       }}

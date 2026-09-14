@@ -99,6 +99,7 @@ export function EarthquakeProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (selectedId && !data.some((eq) => eq.id === selectedId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(null);
     }
   }, [selectedId, data]);

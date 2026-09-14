@@ -1,11 +1,10 @@
 'use client';
 
 import { useEarthquakes } from '@/lib/use-earthquakes';
-import { getSeverity, severityLabel, severityColor, formatRelativeTime } from '@/lib/severity';
-import { haversineDistanceKm } from '@/lib/distance';
+import { getSeverity, severityColor, formatRelativeTime } from '@/lib/severity';
 
 export function EventList() {
-  const { data, rawData, isLoading, error, center, setCenter, setRadiusKm, selectedId, setSelectedId } = useEarthquakes();
+  const { data, rawData, isLoading, error, setCenter, setRadiusKm, selectedId, setSelectedId } = useEarthquakes();
 
   if (isLoading) {
     return <div className="p-4 text-sm text-content-secondary">Memuat data...</div>;
