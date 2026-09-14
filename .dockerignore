@@ -1,0 +1,62 @@
+# =========================================================================
+# 1. DEPENDENCIES & CACHE (Wajib diabaikan agar build tidak berat/konflik)
+# =========================================================================
+**/node_modules
+**/.pnpm-store
+**/.yarn/cache
+**/.yarn/unplugged
+**/.yarn/install-state.gz
+**/.npm
+**/.eslintcache
+
+# =========================================================================
+# 2. HASHIL BUILD & OUTPUT (Abaikan karena akan di-build ulang di Docker)
+# =========================================================================
+**/.next
+**/dist
+**/build
+**/out
+**/.docusaurus
+**/*.tsbuildinfo
+
+# =========================================================================
+# 3. KEAMANAN / KREDENSIAL (Wajib diabaikan agar data rahasia tidak bocor)
+# =========================================================================
+**/.env
+**/.env*.local
+**/.env.production
+**/*.pem
+**/*.key
+**/.aws
+**/.gcloud
+
+# =========================================================================
+# 4. VERSION CONTROL & CONFIG DEV (Abaikan karena tidak butuh di server)
+# =========================================================================
+**/.git
+**/.gitignore
+**/.gitattributes
+**/.github
+**/.gitlab-ci.yml
+**/.vscode
+**/.idea
+
+# =========================================================================
+# 5. OS FILES & LOGS (File sampah sistem operasi)
+# =========================================================================
+**/.DS_Store
+**/Thumbs.db
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# =========================================================================
+# 6. DOKUMENTASI & PENGUJIAN
+# =========================================================================
+**/README.md
+**/LICENSE
+**/tests
+**/coverage
+**/.nyc_output
