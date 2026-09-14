@@ -5,31 +5,22 @@ services:
     image: postgis/postgis:17-3.5
     container_name: trackly-gempa-postgres
     restart: unless-stopped
-
     environment:
       POSTGRES_USER: trackly
       POSTGRES_PASSWORD: trackly_dev
       POSTGRES_DB: trackly
-
     ports:
       - '5432:5432'
-
-    # Persist data in a named volume
     volumes:
       - trackly-gempa-postgres-data:/var/lib/postgresql/data
-
-    # Healthcheck PostgreSQL
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U trackly -d trackly']
       interval: 5s
       timeout: 5s
       retries: 5
-
-    # Connect the service to the app-network
     networks:
       - app-network
 
-  # Adminer service for database management
   adminer:
     image: adminer:latest
     container_name: trackly-gempa-adminer
@@ -42,10 +33,44 @@ services:
     networks:
       - app-network
 
+  server:
+    build:
+      # Context HARUS root, karena api butuh packages/types & pnpm-workspace.yaml
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        DATABASE_URL: postgresql://trackly:trackly_dev@postgres:5432/trackly
+    container_name: gempa_backend_server
+    environment:
+      DATABASE_URL: postgresql://trackly:trackly_dev@postgres:5432/trackly
+      CORS_ORIGIN: http://localhost:3000
+      PORT: '3001'
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Di-bake saat build time, jadi harus URL yang bisa diakses BROWSER
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: gempa_frontend_client
+    ports:
+      - '3000:3000'
+    depends_on:
+      - server
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
-# Define a named volume for PostgreSQL data persistence
 volumes:
   trackly-gempa-postgres-data:
