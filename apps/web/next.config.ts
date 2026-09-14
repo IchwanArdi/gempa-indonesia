@@ -3,6 +3,7 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: 'standalone',
   reactCompiler: true,
   // When running inside a nested git repo (monorepo), Turbopack may
   // resolve the workspace root incorrectly. Point it to the repo root
