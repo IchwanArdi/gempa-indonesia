@@ -142,3 +142,5 @@ jobs:
           tags: |
             ghcr.io/ichwanardi/gempa-indonesia-client:latest
             ghcr.io/ichwanardi/gempa-indonesia-client:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://202.155.90.183:3002
