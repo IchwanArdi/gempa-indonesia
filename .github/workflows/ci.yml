@@ -49,7 +49,7 @@ jobs:
       - name: Test Build Production
         run: pnpm --filter web build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_API_URL: http://localhost:3002
 
   # Job 2: Melakukan verifikasi kode, pengujian unit, dan kompilasi pada aplikasi sisi server (Backend)
   server-verification:
@@ -97,10 +97,8 @@ jobs:
   docker-build:
     name: Verify Docker Image Build
     runs-on: ubuntu-latest
-    # Menjamin job ini hanya berjalan jika verifikasi client dan server telah lolos tanpa error
     needs: [client-verification, server-verification]
 
-    # Hak akses ditingkatkan agar token runtime CI memiliki wewenang mengunggah artifact ke GitHub Packages
     permissions:
       contents: read
       packages: write
@@ -109,45 +107,38 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Mengaktifkan build engine modern (BuildKit) untuk optimalisasi caching kontainer dan build paralel
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build context diarahkan ke root (.) karena Dockerfile memerlukan akses fisik ke konfigurasi pnpm-workspace
-      # serta shared packages eksternal (seperti packages/types) di luar sub-folder aplikasi.
-      - name: Build Server (API) Docker Image
-        run: docker buildx build -f apps/api/Dockerfile -t gempa-indonesia-api:ci .
-
-      - name: Build Client (Web) Docker Image
-        run: docker buildx build -f apps/web/Dockerfile -t gempa-indonesia-web:ci .
-
-      # Autentikasi keamanan ke GitHub Container Registry (GHCR).
-      # Kondisional 'if' memastikan login hanya dipicu pada event push ke branch utama (bukan pada pull request).
       - name: Login to GHCR
         if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }} # Mengambil username pemilik repositori secara dinamis
-          password: ${{ secrets.GITHUB_TOKEN }} # Menggunakan token bawaan berizin packages:write
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Proses standarisasi nama image (tagging) dan pengiriman (pushing) kontainer
-      - name: Tag & Push Images to GHCR
-        if: github.event_name == 'push'
-        run: |
-          # GHCR mewajibkan penamaan image menggunakan huruf kecil seluruhnya.
-          # Transformasi string dilakukan menggunakan utilitas 'tr' via shell substitution.
-          IMAGE_BASE="ghcr.io/${{ github.repository }}"
-          IMAGE_BASE=$(echo "$IMAGE_BASE" | tr '[A-Z]' '[a-z]')
+      # Menggunakan GitHub Action resmi untuk menyederhanakan alur kerja.
+      # Parameter 'push' dikendalikan secara dinamis berdasarkan event trigger untuk efisiensi resource CI.
+      - name: Build and Push Server (API)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          # Proses push ke remote registry hanya diaktifkan jika event berupa push/merge ke branch main
+          push: ${{ github.event_name == 'push' }}
+          # Mendukung deklarasi multi-tag secara langsung tanpa memerlukan perintah internal shell 'docker tag'
+          tags: |
+            ghcr.io/ichwanardi/gempa-indonesia-server:latest
+            ghcr.io/ichwanardi/gempa-indonesia-server:${{ github.sha }}
 
-          # Membuat alias tag produksi (:latest) dan tag spesifik berbasis SHA commit (:github.sha) untuk ketertelusuran versi
-          docker tag gempa-indonesia-api:ci $IMAGE_BASE-server:latest
-          docker tag gempa-indonesia-api:ci $IMAGE_BASE-server:${{ github.sha }}
-          docker tag gempa-indonesia-web:ci $IMAGE_BASE-client:latest
-          docker tag gempa-indonesia-web:ci $IMAGE_BASE-client:${{ github.sha }}
-
-          # Mengirimkan seluruh image yang telah ditandai ke GitHub Container Registry
-          docker push $IMAGE_BASE-server:latest
-          docker push $IMAGE_BASE-server:${{ github.sha }}
-          docker push $IMAGE_BASE-client:latest
-          docker push $IMAGE_BASE-client:${{ github.sha }}
+      # Mengulang parameterisasi yang sama untuk kontainer sisi klien (Frontend) secara terisolasi
+      - name: Build and Push Client (Web)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/ichwanardi/gempa-indonesia-client:latest
+            ghcr.io/ichwanardi/gempa-indonesia-client:${{ github.sha }}
