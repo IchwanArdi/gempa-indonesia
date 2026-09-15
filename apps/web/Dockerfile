@@ -28,7 +28,7 @@ COPY --from=deps /app /app
 COPY apps/web ./apps/web
 COPY packages/types ./packages/types
 
-ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Jalankan build Next.js (standalone)
