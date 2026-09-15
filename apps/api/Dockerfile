@@ -50,7 +50,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/api/prisma ./apps/api/prisma
 
 USER nextjs
 
-ENV PORT=3001
-EXPOSE 3001
+ENV PORT=3002
+EXPOSE 3002
 
 CMD ["node", "apps/api/dist/main.js"]
