@@ -1,15 +1,18 @@
 name: Gempa Indonesia CI Pipeline
 
+# Pemicu (triggers) dijalankan otomatis saat ada aktivitas push atau pull request pada branch utama
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+# Pembatasan hak akses token global secara default untuk meminimalkan celah keamanan (Least Privilege)
 permissions:
   contents: read
 
 jobs:
+  # Job 1: Melakukan verifikasi kode dan kompilasi pada aplikasi sisi klien (Frontend)
   client-verification:
     name: Client (Frontend) Lint & Build
     runs-on: ubuntu-latest
@@ -18,33 +21,37 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Runner GitHub Actions tidak menyertakan pnpm secara default.
-      # Action ini harus dieksekusi sebelum setup-node agar fitur cache pnpm dapat mendeteksi binary di PATH.
+      # Menginstalisasi package manager pnpm.
+      # Harus dieksekusi sebelum setup-node agar integrasi caching dapat mengenali path pnpm secara global.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
 
+      # Inisialisasi runtime Node.js dengan mengaktifkan fitur caching bawaan untuk dependensi pnpm
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'pnpm'
 
-      # Instalasi dijalankan di workspace root menggunakan --frozen-lockfile.
-      # Hal ini wajib agar pnpm menghubungkan internal workspace dependencies (@trackly/types).
+      # Instalasi dependensi dengan opsi --frozen-lockfile untuk menjamin tidak ada perubahan
+      # versi package dari file lock asli selama proses CI berlangsung.
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      # Validasi kualitas kode statis khusus untuk workspace web
       - name: Run ESLint
         run: pnpm --filter web lint
 
-      # NEXT_PUBLIC_API_URL disediakan saat build untuk mencegah error inlining environment variable Next.js
+      # Pengujian kompilasi produksi. Variabel lingkungan NEXT_PUBLIC_API_URL disuntikkan secara eksplisit
+      # karena Next.js melakukan inlining variabel env ke dalam bundle saat proses build berlangsung.
       - name: Test Build Production
         run: pnpm --filter web build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
 
+  # Job 2: Melakukan verifikasi kode, pengujian unit, dan kompilasi pada aplikasi sisi server (Backend)
   server-verification:
     name: Server (Backend) Test & Build
     runs-on: ubuntu-latest
@@ -53,6 +60,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # Menginstalisasi package manager pnpm (Tahapan terisolasi dari job client)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -64,38 +72,82 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      # Mengunduh dependensi monorepo untuk seluruh ekosistem backend
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      # Prisma Client wajib di-generate terlebih dahulu agar tipe database ter-compile sebelum linting, test, atau build
+      # Pembuatan kode Typescript internal dari skema Prisma.
+      # Langkah ini wajib dieksekusi sebelum proses linting dan testing agar tipe data database tersedia bagi compiler.
       - name: Generate Prisma Client
         run: pnpm --filter api exec prisma generate
 
+      # Analisis kode statis backend menggunakan linter performa tinggi (oxlint)
       - name: Run oxlint
         run: pnpm --filter api lint
 
+      # Mengeksekusi unit testing menggunakan framework Vitest
       - name: Run Vitest Suite
         run: pnpm --filter api test
 
+      # Kompilasi aplikasi NestJS menjadi berkode JavaScript produksi siap edar
       - name: Build NestJS Production Bundle
         run: pnpm --filter api build
 
+  # Job 3: Proses pengemasan aplikasi ke dalam kontainer Docker dan distribusi ke registry
   docker-build:
     name: Verify Docker Image Build
     runs-on: ubuntu-latest
+    # Menjamin job ini hanya berjalan jika verifikasi client dan server telah lolos tanpa error
     needs: [client-verification, server-verification]
+
+    # Hak akses ditingkatkan agar token runtime CI memiliki wewenang mengunggah artifact ke GitHub Packages
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Gunakan buildx untuk standardisasi build engine dan pemanfaatan layer caching
+      # Mengaktifkan build engine modern (BuildKit) untuk optimalisasi caching kontainer dan build paralel
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build context harus diarahkan ke root (.) karena Dockerfile menyalin konfigurasi pnpm-workspace dan packages/types
+      # Build context diarahkan ke root (.) karena Dockerfile memerlukan akses fisik ke konfigurasi pnpm-workspace
+      # serta shared packages eksternal (seperti packages/types) di luar sub-folder aplikasi.
       - name: Build Server (API) Docker Image
-        run: docker build -f apps/api/Dockerfile -t gempa-indonesia-api:ci .
+        run: docker buildx build -f apps/api/Dockerfile -t gempa-indonesia-api:ci .
 
       - name: Build Client (Web) Docker Image
-        run: docker build -f apps/web/Dockerfile -t gempa-indonesia-web:ci .
+        run: docker buildx build -f apps/web/Dockerfile -t gempa-indonesia-web:ci .
+
+      # Autentikasi keamanan ke GitHub Container Registry (GHCR).
+      # Kondisional 'if' memastikan login hanya dipicu pada event push ke branch utama (bukan pada pull request).
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }} # Mengambil username pemilik repositori secara dinamis
+          password: ${{ secrets.GITHUB_TOKEN }} # Menggunakan token bawaan berizin packages:write
+
+      # Proses standarisasi nama image (tagging) dan pengiriman (pushing) kontainer
+      - name: Tag & Push Images to GHCR
+        if: github.event_name == 'push'
+        run: |
+          # GHCR mewajibkan penamaan image menggunakan huruf kecil seluruhnya.
+          # Transformasi string dilakukan menggunakan utilitas 'tr' via shell substitution.
+          IMAGE_BASE="ghcr.io/${{ github.repository }}"
+          IMAGE_BASE=$(echo "$IMAGE_BASE" | tr '[A-Z]' '[a-z]')
+
+          # Membuat alias tag produksi (:latest) dan tag spesifik berbasis SHA commit (:github.sha) untuk ketertelusuran versi
+          docker tag gempa-indonesia-api:ci $IMAGE_BASE-server:latest
+          docker tag gempa-indonesia-api:ci $IMAGE_BASE-server:${{ github.sha }}
+          docker tag gempa-indonesia-web:ci $IMAGE_BASE-client:latest
+          docker tag gempa-indonesia-web:ci $IMAGE_BASE-client:${{ github.sha }}
+
+          # Mengirimkan seluruh image yang telah ditandai ke GitHub Container Registry
+          docker push $IMAGE_BASE-server:latest
+          docker push $IMAGE_BASE-server:${{ github.sha }}
+          docker push $IMAGE_BASE-client:latest
+          docker push $IMAGE_BASE-client:${{ github.sha }}
