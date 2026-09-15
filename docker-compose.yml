@@ -43,10 +43,10 @@ services:
     container_name: gempa_backend_server
     environment:
       DATABASE_URL: postgresql://trackly:trackly_dev@postgres:5432/trackly
-      CORS_ORIGIN: http://localhost:3000
-      PORT: '3001'
+      CORS_ORIGIN: http://localhost:3003
+      PORT: '3002'
     ports:
-      - '3001:3001'
+      - '3002:3002'
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,10 +59,10 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         # Di-bake saat build time, jadi harus URL yang bisa diakses BROWSER
-        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_API_URL: http://localhost:3002
     container_name: gempa_frontend_client
     ports:
-      - '3000:3000'
+      - '3003:3000'
     depends_on:
       - server
     networks:
