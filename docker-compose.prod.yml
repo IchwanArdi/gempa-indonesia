@@ -1,0 +1,126 @@
+services:
+
+  # ─────────────────────────────────────────────
+  # DATABASE
+  # Menggunakan postgis karena schema Prisma kita
+  # pakai tipe geography(Point,4326) untuk kolom geom.
+  # Kalau pakai postgres biasa, extension itu tidak ada
+  # dan migration akan gagal.
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: trackly-gempa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '5432:5432'
+    volumes:
+      # Named volume — data tersimpan di disk VPS, tidak ikut hilang
+      # saat container di-recreate atau di-restart.
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready mengirim ping ke PostgreSQL. Hasilnya dipakai oleh
+      # service lain lewat condition: service_healthy supaya mereka
+      # tidak start sebelum database benar-benar siap menerima koneksi.
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
+  # ─────────────────────────────────────────────
+  # MIGRATE
+  # Service ini sengaja dipisah dari api.
+  # Tugasnya satu: jalankan semua file migration yang
+  # belum diaplikasikan ke database, lalu mati sendiri.
+  #
+  # Kenapa perlu ini? Karena database di VPS selalu
+  # mulai kosong. migrate deploy yang membuat semua
+  # tabel berdasarkan file di prisma/migrations/.
+  # ─────────────────────────────────────────────
+  migrate:
+    image: ghcr.io/ichwanardi/gempa-indonesia-server:latest
+    container_name: trackly-gempa-migrate
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        # Pastikan postgres sudah benar-benar siap sebelum migrate jalan.
+        # Tanpa ini, migrate bisa gagal karena koneksi ditolak.
+        condition: service_healthy
+    command: >
+      sh -c "node_modules/.bin/prisma migrate deploy
+      --schema apps/api/prisma/schema.prisma"
+    # restart: no — service ini memang hanya boleh jalan sekali.
+    # Kalau gagal, biarkan mati supaya kita tahu ada yang salah,
+    # bukan diulang terus tanpa henti.
+    restart: 'no'
+    networks:
+      - app-network
+
+  # ─────────────────────────────────────────────
+  # API (NestJS)
+  # ─────────────────────────────────────────────
+  api:
+    image: ghcr.io/ichwanardi/gempa-indonesia-server:latest
+    container_name: trackly-gempa-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        # api tidak boleh start sebelum migrate selesai dengan sukses.
+        # Kalau migrate gagal, api pun tidak akan jalan —
+        # ini yang kita inginkan supaya error tidak tersembunyi.
+        condition: service_completed_successfully
+    environment:
+      PORT: '3002'
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    ports:
+      # Format HOST:CONTAINER. Nilai API_PORT diambil dari .env di VPS.
+      # Port dalam container selalu 3002 (sesuai Dockerfile), tidak berubah.
+      - '${API_PORT}:3002'
+    networks:
+      - app-network
+
+  # ─────────────────────────────────────────────
+  # WEB (Next.js)
+  # ─────────────────────────────────────────────
+  web:
+    image: ghcr.io/ichwanardi/gempa-indonesia-client:latest
+    container_name: trackly-gempa-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      PORT: '3000'
+      # Variabel ini dibaca Next.js di runtime (server-side).
+      # Berbeda dengan NEXT_PUBLIC_API_URL yang di-bake saat build —
+      # yang itu sudah tertanam di dalam image oleh GitHub Actions.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - '${APP_PORT}:3000'
+    networks:
+      - app-network
+
+# Semua service masuk ke jaringan internal yang sama.
+# Container bisa saling berkomunikasi menggunakan nama service
+# sebagai hostname (contoh: postgres, api) tanpa perlu tahu IP-nya.
+networks:
+  app-network:
+    driver: bridge
+
+# Data PostgreSQL disimpan sebagai named volume yang dikelola Docker.
+# Lokasi fisiknya ada di /var/lib/docker/volumes/ di VPS.
+volumes:
+  postgres_data:
