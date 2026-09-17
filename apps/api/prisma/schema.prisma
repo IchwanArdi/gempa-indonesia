@@ -5,10 +5,6 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  // url dipakai oleh prisma CLI (migrate deploy, studio, dll).
-  // PrismaService di runtime tidak pakai ini — koneksi dihandle
-  // lewat pg.Pool + PrismaPg adapter di prisma.service.ts.
-  url        = env("DATABASE_URL")
   extensions = [postgis]
 }
 

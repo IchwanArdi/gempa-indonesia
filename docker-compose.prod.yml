@@ -55,8 +55,7 @@ services:
         # Tanpa ini, migrate bisa gagal karena koneksi ditolak.
         condition: service_healthy
     command: >
-      sh -c "apps/api/node_modules/.bin/prisma migrate deploy
-      --schema apps/api/prisma/schema.prisma"
+      sh -c "cd apps/api && node_modules/.bin/prisma migrate deploy"
     # restart: no — service ini memang hanya boleh jalan sekali.
     # Kalau gagal, biarkan mati supaya kita tahu ada yang salah,
     # bukan diulang terus tanpa henti.

@@ -47,6 +47,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/packages/types ./packages/types
 COPY --from=builder --chown=nextjs:nodejs /app/apps/api/prisma ./apps/api/prisma
+# prisma.config.ts dibutuhkan oleh Prisma v7 CLI saat menjalankan
+# migrate deploy. Tanpa file ini, CLI tidak tahu URL database-nya.
+COPY --from=builder --chown=nextjs:nodejs /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 
 USER nextjs
 
